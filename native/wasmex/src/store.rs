@@ -11,6 +11,7 @@ use wasmtime::{
     StoreLimitsBuilder,
 };
 use wasmtime_wasi::WasiCtxBuilder;
+use wasmtime_wasi_threads::WasiThreadsCtx;
 
 use crate::{
     caller::{get_caller, get_caller_mut},
@@ -93,6 +94,7 @@ impl ExStoreLimits {
 
 pub struct StoreData {
     pub(crate) wasi: Option<WasiCtx>,
+    pub(crate) wasi_threads: Option<WasiThreadsCtx<T>,
     pub(crate) limits: StoreLimits,
 }
 

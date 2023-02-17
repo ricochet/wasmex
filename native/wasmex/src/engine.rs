@@ -67,6 +67,7 @@ pub(crate) fn engine_config(engine_config: ExEngineConfig) -> Config {
     config.consume_fuel(engine_config.consume_fuel);
     config.wasm_backtrace_details(backtrace_details);
     config.cranelift_opt_level(cranelift_opt_level);
+    config.wasm_threads(true);
     config
 }
 
