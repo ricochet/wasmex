@@ -66,8 +66,6 @@ fn link_and_create_instance(
         linker.allow_shadowing(true);
         wasmtime_wasi::add_to_linker(&mut linker, |s: &mut StoreData| s.wasi.as_mut().unwrap())
             .map_err(|err| Error::Term(Box::new(err.to_string())))?;
-        wasmtime_wasi_threads::add_to_linker(&mut linker, |s: &mut StoreData| s.wasi.as_mut().unwrap())
-            .map_err(|err| Error::Term(Box::new(err.to_string())))?;
     }
 
     link_imports(&mut linker, imports)?;

@@ -19,9 +19,8 @@ rustler = "0.26.0"
 once_cell = "1.17.0"
 rand = "0.8.5"
 # wasmtime = "4.0.0"
-wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "dev", features = ["component-model"] }
-wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "dev" }
-wasi-common = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "dev" }
-wasmtime-wasi-threads = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "dev"}
-wiggle = { git = "https://github.com/bytecodealliance/wasmtime.git", rev = "dev" }
-wat = "1.0.59"
+wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", features = ["component-model"] }
+wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git" }
+wasi-common = { git = "https://github.com/bytecodealliance/wasmtime.git" }
+wiggle = { git = "https://github.com/bytecodealliance/wasmtime.git" }
+wat = "1.0.61"

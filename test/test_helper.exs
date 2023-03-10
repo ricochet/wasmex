@@ -2,9 +2,13 @@ defmodule TestHelper do
   @wasm_test_source_dir "#{Path.dirname(__ENV__.file)}/wasm_test"
   @wasm_import_test_source_dir "#{Path.dirname(__ENV__.file)}/wasm_import_test"
   @wasi_test_source_dir "#{Path.dirname(__ENV__.file)}/wasi_test"
+  @component_test_source_dir "#{Path.dirname(__ENV__.file)}/component_test"
 
   def wasm_test_file_path,
     do: "#{@wasm_test_source_dir}/target/wasm32-unknown-unknown/debug/wasmex_test.wasm"
+
+  def wasm_component_test_file_path,
+    do: "#{@component_test_source_dir}/guest.component.wasm"
 
   def wasm_import_test_file_path,
     do: "#{@wasm_import_test_source_dir}/target/wasm32-unknown-unknown/debug/wasmex_test.wasm"
@@ -26,6 +30,16 @@ defmodule TestHelper do
 
     %{store: store, module: wasm_module}
   end
+
+  def wasm_component do
+    {:ok, store} = Wasmex.Store.new()
+
+    {:ok, wasm_component} =
+      Wasmex.Module.compile(store, File.read!(TestHelper.wasm_component_test_file_path()))
+
+    %{store: store, module: wasm_module}
+  end
+
 
   def wasm_import_module do
     {:ok, store} = Wasmex.Store.new()
