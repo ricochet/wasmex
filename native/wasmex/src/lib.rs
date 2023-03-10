@@ -32,8 +32,6 @@ rustler::init! {
         memory::size,
         memory::write_binary,
         module::compile,
-        module::exports,
-        module::imports,
         module::name,
         module::serialize,
         module::unsafe_deserialize,
@@ -56,7 +54,7 @@ fn on_load(env: Env, _info: Term) -> bool {
     rustler::resource!(environment::CallbackTokenResource, env);
     rustler::resource!(instance::InstanceResource, env);
     rustler::resource!(memory::MemoryResource, env);
-    rustler::resource!(module::ModuleResource, env);
+    rustler::resource!(module::ComponentResource, env);
     rustler::resource!(pipe::PipeResource, env);
     rustler::resource!(store::StoreOrCallerResource, env);
     true

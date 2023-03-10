@@ -6,7 +6,8 @@ use std::sync::Mutex;
 use rustler::resource::ResourceArc;
 use rustler::{Atom, Binary, Error, NewBinary, NifResult, Term};
 
-use wasmtime::{Instance, Memory, Store};
+use wasmtime::{Memory, Store};
+use wasmtime::component::Instance;
 
 use crate::store::{StoreOrCaller, StoreOrCallerResource};
 use crate::{atoms, instance};
@@ -135,10 +136,13 @@ pub fn memory_from_instance(
     instance: &Instance,
     store_or_caller: &mut StoreOrCaller,
 ) -> Result<Memory, Error> {
-    instance
-        .exports(store_or_caller)
-        .find_map(|export| export.into_memory())
-        .ok_or_else(|| Error::Term(Box::new("The WebAssembly module has no exported memory.")))
+    instance.exports(store_or_caller)
+
+
+    // instance
+    //     .exports(store_or_caller)
+    //     .find_map(|export| export.into_memory())
+    //     .ok_or_else(|| Error::Term(Box::new("The WebAssembly module has no exported memory.")))
 }
 
 #[rustler::nif(name = "memory_read_binary")]

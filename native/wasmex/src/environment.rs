@@ -4,7 +4,8 @@ use rustler::{
     resource::ResourceArc, types::tuple, Atom, Encoder, Error, ListIterator, MapIterator, OwnedEnv,
     Term,
 };
-use wasmtime::{Caller, Extern, FuncType, Linker, Val, ValType};
+use wasmtime::{Caller, Extern, FuncType, ValType};
+use wasmtime::component::{Linker, Val};
 use wiggle::anyhow::{self, anyhow};
 
 use crate::{
@@ -102,7 +103,10 @@ fn link_imported_function(
         .collect::<Result<Vec<ValType>, _>>()?;
 
     let signature = FuncType::new(params_signature, results_signature.clone());
+    
+    // todo
     linker
+
         .func_new(
             &namespace_name.clone(),
             &import_name.clone(),

@@ -9,13 +9,14 @@ use rustler::{
 use std::sync::Mutex;
 use std::thread;
 
-use wasmtime::{Instance, Linker, Module, Val, ValType};
+use wasmtime::{Val, ValType};
+use wasmtime::component::{Component, Instance, Linker};
 
 use crate::{
     atoms,
     environment::{link_imports, CallbackTokenResource},
     functions,
-    module::ModuleResource,
+    module::ComponentResource,
     printable_term_type::PrintableTermType,
     store::{StoreData, StoreOrCaller, StoreOrCallerResource},
 };
@@ -28,13 +29,13 @@ pub struct InstanceResource {
 // expects the following elixir params
 //
 // * store (StoreResource): the store the module was compiled with
-// * module (ModuleResource): the compiled Wasm module
+// * module (ComponentResource): the compiled Wasm module
 // * imports (map): a map defining eventual instance imports, may be empty if there are none.
 //   structure: %{namespace_name: %{import_name: {:fn, param_types, result_types, captured_function}}}
 #[rustler::nif(name = "instance_new")]
 pub fn new(
     store_or_caller_resource: ResourceArc<StoreOrCallerResource>,
-    module_resource: ResourceArc<ModuleResource>,
+    module_resource: ResourceArc<ComponentResource>,
     imports: MapIterator,
 ) -> Result<ResourceArc<InstanceResource>, rustler::Error> {
     let module = module_resource.inner.lock().map_err(|e| {
@@ -58,7 +59,7 @@ pub fn new(
 
 fn link_and_create_instance(
     store_or_caller: &mut StoreOrCaller,
-    module: &Module,
+    module: &Component,
     imports: MapIterator,
 ) -> Result<Instance, Error> {
     let mut linker = Linker::new(store_or_caller.engine());
@@ -146,7 +147,7 @@ fn execute_function(
     };
     let instance: Instance = *(instance_resource.inner.lock().unwrap());
     let mut store_or_caller = store_or_caller_resource.inner.lock().unwrap();
-    let function_result = functions::find(&instance, &mut store_or_caller, &function_name);
+    let function_result = functions::findComponent(&instance, &mut store_or_caller, &function_name);
     let function = match function_result {
         Some(func) => func,
         None => {

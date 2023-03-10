@@ -40,7 +40,6 @@ defmodule TestHelper do
     %{store: store, module: wasm_module}
   end
 
-
   def wasm_import_module do
     {:ok, store} = Wasmex.Store.new()
 

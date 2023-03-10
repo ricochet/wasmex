@@ -6,8 +6,10 @@ use rustler::{
 use std::{collections::HashMap, sync::Mutex};
 
 use wasmtime::{
-    ExternType, FuncType, GlobalType, MemoryType, Module, Mutability, TableType, ValType,
+    FuncType, GlobalType, MemoryType, Mutability, TableType, ValType,
 };
+
+use wasmtime::component::{Component};
 
 use crate::{
     atoms,
@@ -15,15 +17,15 @@ use crate::{
     store::{StoreOrCaller, StoreOrCallerResource},
 };
 
-pub struct ModuleResource {
-    pub inner: Mutex<Module>,
+pub struct ComponentResource {
+    pub inner: Mutex<Component>,
 }
 
 #[rustler::nif(name = "module_compile")]
 pub fn compile(
     store_or_caller_resource: ResourceArc<StoreOrCallerResource>,
     binary: Binary,
-) -> Result<ResourceArc<ModuleResource>, rustler::Error> {
+) -> Result<ResourceArc<ComponentResource>, rustler::Error> {
     let store_or_caller: &mut StoreOrCaller =
         &mut *(store_or_caller_resource.inner.lock().map_err(|e| {
             rustler::Error::Term(Box::new(format!(
@@ -33,9 +35,9 @@ pub fn compile(
     let bytes = binary.as_slice();
     let bytes = wat::parse_bytes(bytes)
         .map_err(|e| rustler::Error::Term(Box::new(format!("Error while parsing bytes: {e}."))))?;
-    match Module::new(store_or_caller.engine(), bytes) {
+    match Component::new(store_or_caller.engine(), bytes) {
         Ok(module) => {
-            let resource = ResourceArc::new(ModuleResource {
+            let resource = ResourceArc::new(ComponentResource {
                 inner: Mutex::new(module),
             });
             Ok(resource)
@@ -47,7 +49,7 @@ pub fn compile(
 }
 
 #[rustler::nif(name = "module_name")]
-pub fn name(module_resource: ResourceArc<ModuleResource>) -> NifResult<String> {
+pub fn name(module_resource: ResourceArc<ComponentResource>) -> NifResult<String> {
     let module = module_resource.inner.lock().map_err(|e| {
         rustler::Error::Term(Box::new(format!(
             "Could not unlock module resource as the mutex was poisoned: {e}"
@@ -57,58 +59,6 @@ pub fn name(module_resource: ResourceArc<ModuleResource>) -> NifResult<String> {
         .name()
         .ok_or_else(|| rustler::Error::Term(Box::new("no module name set")))?;
     Ok(name.into())
-}
-
-#[rustler::nif(name = "module_exports")]
-pub fn exports(env: rustler::Env, module_resource: ResourceArc<ModuleResource>) -> NifResult<Term> {
-    let module = module_resource.inner.lock().map_err(|e| {
-        rustler::Error::Term(Box::new(format!(
-            "Could not unlock module resource as the mutex was poisoned: {e}"
-        )))
-    })?;
-    let mut map = rustler::Term::map_new(env);
-    for export in module.exports() {
-        let export_name = rustler::Encoder::encode(export.name(), env);
-        let export_info = match export.ty() {
-            ExternType::Func(ty) => function_info(env, &ty),
-            ExternType::Global(ty) => global_info(env, &ty),
-            ExternType::Memory(ty) => memory_info(env, &ty),
-            ExternType::Table(ty) => table_info(env, &ty),
-        };
-        map = map.map_put(export_name, export_info)?;
-    }
-    Ok(map)
-}
-
-#[rustler::nif(name = "module_imports")]
-pub fn imports(env: rustler::Env, module_resource: ResourceArc<ModuleResource>) -> NifResult<Term> {
-    let module = module_resource.inner.lock().map_err(|e| {
-        rustler::Error::Term(Box::new(format!(
-            "Could not unlock module resource as the mutex was poisoned: {e}"
-        )))
-    })?;
-    let mut namespaces = HashMap::new();
-    for import in module.imports() {
-        let import_name = rustler::Encoder::encode(import.name(), env);
-        let import_module = String::from(import.module());
-
-        let import_info = match import.ty() {
-            ExternType::Func(ty) => function_info(env, &ty),
-            ExternType::Global(ty) => global_info(env, &ty),
-            ExternType::Table(ty) => table_info(env, &ty),
-            ExternType::Memory(ty) => memory_info(env, &ty),
-        };
-        let map = namespaces
-            .entry(import_module)
-            .or_insert_with(|| rustler::Term::map_new(env));
-        *map = map.map_put(import_name, import_info)?;
-    }
-    let mut map = rustler::Term::map_new(env);
-    for (module_name, &module_map) in &namespaces {
-        let module_name = rustler::Encoder::encode(&module_name, env);
-        map = map.map_put(module_name, module_map)?;
-    }
-    Ok(map)
 }
 
 fn function_info<'a>(env: rustler::Env<'a>, ty: &FuncType) -> Term<'a> {
@@ -228,7 +178,7 @@ fn memory_info<'a>(env: rustler::Env<'a>, memory_type: &MemoryType) -> Term<'a> 
 #[rustler::nif(name = "module_serialize")]
 pub fn serialize(
     env: rustler::Env,
-    module_resource: ResourceArc<ModuleResource>,
+    module_resource: ResourceArc<ComponentResource>,
 ) -> NifResult<Binary> {
     let module = module_resource.inner.lock().map_err(|e| {
         rustler::Error::Term(Box::new(format!(
@@ -248,7 +198,7 @@ pub fn serialize(
 pub fn unsafe_deserialize(
     binary: Binary,
     engine_resource: ResourceArc<EngineResource>,
-) -> Result<ResourceArc<ModuleResource>, rustler::Error> {
+) -> Result<ResourceArc<ComponentResource>, rustler::Error> {
     let engine = unwrap_engine(engine_resource)?;
     // Safety: This function is inherently unsafe as the provided bytes:
     // 1. Are going to be deserialized directly into Rust objects.
@@ -256,11 +206,11 @@ pub fn unsafe_deserialize(
     // And as such, the deserialize method is unsafe.
     // However, there isn't much we can do about it here, we will warn users in elixir-land about this, though.
     let module = unsafe {
-        Module::deserialize(&engine, binary.as_slice()).map_err(|e| {
+        Component::deserialize(&engine, binary.as_slice()).map_err(|e| {
             rustler::Error::Term(Box::new(format!("Could not deserialize module: {e}")))
         })?
     };
-    let resource = ResourceArc::new(ModuleResource {
+    let resource = ResourceArc::new(ComponentResource {
         inner: Mutex::new(module),
     });
     Ok(resource)
